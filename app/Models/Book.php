@@ -15,6 +15,9 @@ class Book extends Model
         'year',
         'available',
         'author_id',
+        'summary',
+        'summary_generated_by',
+        'summary_generated_at',
     ];
 
     protected function casts(): array
@@ -22,6 +25,7 @@ class Book extends Model
         return [
             'year' => 'integer',
             'available' => 'boolean',
+            'summary_generated_at' => 'datetime',
         ];
     }
 
