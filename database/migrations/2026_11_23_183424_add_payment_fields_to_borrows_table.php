@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::table('borrows', function (Blueprint $table) {
             //
+            $table->enum('payment_status', ['pending', 'paid', 'free'])->default('free')->after('returned_at');
+            $table->foreignId('user_id')->nullable()->after('book_id')->constrained('users')->nullOnDelete();
         });
     }
 
@@ -23,6 +25,8 @@ return new class extends Migration
     {
         Schema::table('borrows', function (Blueprint $table) {
             //
+            $table->dropConstrainedForeignId('user_id');
+            $table->dropColumn('payment_status');
         });
     }
 };
