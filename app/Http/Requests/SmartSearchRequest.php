@@ -12,7 +12,7 @@ class SmartSearchRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -24,6 +24,7 @@ class SmartSearchRequest extends FormRequest
     {
         return [
             //
+            'query' => ['required', 'string', 'min:3', 'max:500'],
         ];
     }
 }
