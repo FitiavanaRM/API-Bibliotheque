@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::table('books', function (Blueprint $table) {
             //
+            $table->text('summary')->nullable()->after('available');
+            $table->string('summary_generated_by')->nullable()->after('summary');
+            $table->timestamp('summary_generated_at')->nullable()->after('summary_generated_by');
         });
     }
 
@@ -23,6 +26,7 @@ return new class extends Migration
     {
         Schema::table('books', function (Blueprint $table) {
             //
+            $table->dropColumn(['summary', 'summary_generated_by', 'summary_generated_at']);
         });
     }
 };
