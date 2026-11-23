@@ -1,0 +1,1169 @@
+{
+    "info": {
+        "_postman_id": "db6d9b45-1b81-8ccc-9a44-9383f2f0c450",
+        "name": "API Bibliothèque — HERIFITIAVANA Rotsy Nomena",
+        "description": "API REST de gestion de bibliothèque (Laravel, Sanctum). Sélectionnez un environnement, exécutez le login, puis le reste.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "1. Authentification",
+            "item": [
+                {
+                    "name": "POST /auth/login - Connexion",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('Un token est retourné', function () { const j = pm.response.json(); pm.expect(j.data.token).to.be.a('string').and.not.empty; });",
+                                    "pm.test('Le type de token est Bearer', function () { const j = pm.response.json(); pm.expect(j.data.token_type).to.eql('Bearer'); });",
+                                    "if (pm.response.code === 200) { pm.environment.set('token', pm.response.json().data.token); }"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@bibliotheque.test\",\n  \"password\": \"password123\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "POST /auth/login - Identifiants invalides (401)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 401', function () { pm.response.to.have.status(401); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"admin@bibliotheque.test\",\n  \"password\": \"mauvais\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. Authors",
+            "item": [
+                {
+                    "name": "GET /authors - Liste des auteurs",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('data est un tableau non vide', function () { const j = pm.response.json(); pm.expect(j.data).to.be.an('array').that.is.not.empty; });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "POST /authors - Créer un auteur",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 201', function () { pm.response.to.have.status(201); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('L'auteur créé a un identifiant', function () { const j = pm.response.json(); pm.expect(j.data.id).to.be.a('number'); pm.expect(j.data.last_name).to.eql('Postman'); });",
+                                    "if (pm.response.code === 201) { pm.environment.set('author_id', pm.response.json().data.id); }"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"Postman\",\n  \"nationality\": \"Malgache\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "POST /authors - Données invalides (422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 422', function () { pm.response.to.have.status(422); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });",
+                                    "pm.test('Erreur attendue sur first_name', function () { const j = pm.response.json(); pm.expect(j.errors).to.have.property('first_name'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"first_name\": \"\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "GET /authors/{id} - Afficher un auteur et ses livres",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('L'identifiant correspond à author_id', function () { const j = pm.response.json(); pm.expect(j.data.id).to.eql(parseInt(pm.environment.get('author_id'))); });",
+                                    "pm.test('Les livres sont inclus (tableau)', function () { const j = pm.response.json(); pm.expect(j.data.books).to.be.an('array'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors/{{author_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors",
+                                "{{author_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "GET /authors/{id} - Auteur introuvable (404)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 404', function () { pm.response.to.have.status(404); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors/999999",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors",
+                                "999999"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "PUT /authors/{id} - Modifier un auteur",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('L'identifiant correspond à author_id', function () { const j = pm.response.json(); pm.expect(j.data.id).to.eql(parseInt(pm.environment.get('author_id'))); });",
+                                    "pm.test('La nationalité est modifiée', function () { const j = pm.response.json(); pm.expect(j.data.nationality).to.eql('Malgache (modifié)'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors/{{author_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors",
+                                "{{author_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"nationality\": \"Malgache (modifié)\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE /authors/{id} - Supprimer un auteur",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 204', function () { pm.response.to.have.status(204); });",
+                                    "pm.test('Corps de réponse vide', function () { pm.expect(pm.response.text()).to.eql(''); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/authors/{{author_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "authors",
+                                "{{author_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. Books",
+            "item": [
+                {
+                    "name": "GET /books - Liste des livres",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('Chaque livre contient son auteur', function () { const j = pm.response.json(); pm.expect(j.data).to.be.an('array').that.is.not.empty; pm.expect(j.data[0]).to.have.property('author'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "GET /books?available=false - Livres indisponibles",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Tous les livres sont indisponibles', function () { const j = pm.response.json(); pm.expect(j.data.every(function (b) { return b.available === false; })).to.eql(true); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books?available=false",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books"
+                            ],
+                            "query": [
+                                {
+                                    "key": "available",
+                                    "value": "false"
+                                }
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "POST /books - Ajouter un livre",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.environment.set('isbn', '978' + Date.now());"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 201', function () { pm.response.to.have.status(201); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('Le livre est disponible et lié à auteur 1', function () { const j = pm.response.json(); pm.expect(j.data.available).to.eql(true); pm.expect(j.data.author_id).to.eql(1); });",
+                                    "if (pm.response.code === 201) { pm.environment.set('book_id', pm.response.json().data.id); }"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Livre Postman\",\n  \"isbn\": \"{{isbn}}\",\n  \"year\": 2020,\n  \"author_id\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "POST /books - ISBN en doublon (422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 422', function () { pm.response.to.have.status(422); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });",
+                                    "pm.test('Erreur attendue sur isbn', function () { const j = pm.response.json(); pm.expect(j.errors).to.have.property('isbn'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Doublon\",\n  \"isbn\": \"{{isbn}}\",\n  \"year\": 2020,\n  \"author_id\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "POST /books - Auteur inexistant (422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 422', function () { pm.response.to.have.status(422); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Erreur attendue sur author_id', function () { const j = pm.response.json(); pm.expect(j.errors).to.have.property('author_id'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Sans auteur\",\n  \"isbn\": \"9789999999999\",\n  \"year\": 2020,\n  \"author_id\": 999999\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "GET /books/{id} - Afficher un livre et son auteur",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('L'identifiant correspond à book_id', function () { const j = pm.response.json(); pm.expect(j.data.id).to.eql(parseInt(pm.environment.get('book_id'))); });",
+                                    "pm.test('L'auteur est inclus', function () { const j = pm.response.json(); pm.expect(j.data.author).to.be.an('object'); pm.expect(j.data.author.id).to.eql(j.data.author_id); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "{{book_id}}"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "GET /books/{id} - Livre introuvable (404)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 404', function () { pm.response.to.have.status(404); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/999999",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "999999"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "PUT /books/{id} - Modifier un livre",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('L'identifiant correspond à book_id', function () { const j = pm.response.json(); pm.expect(j.data.id).to.eql(parseInt(pm.environment.get('book_id'))); });",
+                                    "pm.test('Le titre est modifié', function () { const j = pm.response.json(); pm.expect(j.data.title).to.eql('Livre Postman (modifié)'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "{{book_id}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"title\": \"Livre Postman (modifié)\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "DELETE /books/{id} - Supprimer un livre",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 204', function () { pm.response.to.have.status(204); });",
+                                    "pm.test('Corps de réponse vide', function () { pm.expect(pm.response.text()).to.eql(''); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/{{book_id}}",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "{{book_id}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. Borrows",
+            "item": [
+                {
+                    "name": "GET /borrows - Sans token (401)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 401', function () { pm.response.to.have.status(401); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                },
+                {
+                    "name": "GET /borrows - Emprunts en cours",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('Aucun emprunt retourné dans la liste', function () { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); pm.expect(j.data.every(function (b) { return b.returned_at === null; })).to.eql(true); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "POST /borrows - Enregistrer un emprunt",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 201', function () { pm.response.to.have.status(201); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
+                                    "pm.test('L'emprunt est en cours et le livre est indisponible', function () { const j = pm.response.json(); pm.expect(j.data.returned_at).to.eql(null); pm.expect(j.data.book.available).to.eql(false); });",
+                                    "if (pm.response.code === 201) { pm.environment.set('borrow_id', pm.response.json().data.id); }"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_name\": \"Postman User\",\n  \"book_id\": 4\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "POST /borrows - Livre indisponible (422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 422', function () { pm.response.to.have.status(422); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });",
+                                    "pm.test('Erreur attendue sur book_id', function () { const j = pm.response.json(); pm.expect(j.errors).to.have.property('book_id'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"user_name\": \"Autre\",\n  \"book_id\": 4\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /borrows/{id}/return - Rendre un livre",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('L'identifiant correspond à borrow_id', function () { const j = pm.response.json(); pm.expect(j.data.id).to.eql(parseInt(pm.environment.get('borrow_id'))); });",
+                                    "pm.test('La date de retour est renseignée', function () { const j = pm.response.json(); pm.expect(j.data.returned_at).to.be.a('string'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows/{{borrow_id}}/return",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows",
+                                "{{borrow_id}}",
+                                "return"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /borrows/{id}/return - Retour multiple (422)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 422', function () { pm.response.to.have.status(422); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });",
+                                    "pm.test('Erreur attendue sur borrow', function () { const j = pm.response.json(); pm.expect(j.errors).to.have.property('borrow'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows/{{borrow_id}}/return",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows",
+                                "{{borrow_id}}",
+                                "return"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "PATCH /borrows/{id}/return - Emprunt introuvable (404)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 404', function () { pm.response.to.have.status(404); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/borrows/999999/return",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "borrows",
+                                "999999",
+                                "return"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
