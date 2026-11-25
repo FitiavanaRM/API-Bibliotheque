@@ -82,6 +82,37 @@ class BibliothequeApiTest extends TestCase
         $this->getJson("/api/v1/authors/{$authorId}")->assertNotFound();
     }
 
+    public function test_lecture_publique_et_modification_d_un_livre(): void
+    {
+        $this->getJson('/api/v1/books')->assertOk();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+        $author = Author::create(['first_name' => 'A', 'last_name' => 'B', 'nationality' => 'C']);
+        $book = Book::create([
+            'title' => 'Titre initial',
+            'isbn' => '333',
+            'year' => 2020,
+            'available' => true,
+            'author_id' => $author->id,
+        ]);
+
+        $this->getJson('/api/v1/books?available=true')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $book->id);
+
+        $this->getJson("/api/v1/books/{$book->id}")
+            ->assertOk()
+            ->assertJsonPath('data.author.id', $author->id);
+
+        $this->putJson("/api/v1/books/{$book->id}", ['title' => 'Titre modifié'])
+            ->assertOk()
+            ->assertJsonPath('data.title', 'Titre modifié');
+
+        $this->assertSame('Titre modifié', $book->fresh()->title);
+    }
+
     public function test_emprunt_et_retour(): void
     {
         $this->auth();
