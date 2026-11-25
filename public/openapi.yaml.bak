@@ -1,0 +1,763 @@
+openapi: 3.0.3
+info:
+  title: API Bibliothèque
+  description: |
+    API REST de gestion de bibliothèque (livres, auteurs, emprunts).
+
+    **Authentification** : appelez `POST /auth/login`, copiez la valeur de `data.token`,
+    puis cliquez sur le bouton **Authorize** et collez le token (sans le mot « Bearer »).
+
+    **Endpoints publics** : login, `GET /authors`, `GET /authors/{id}`, `GET /books`, `GET /books/{id}`.
+    **Endpoints protégés** : tous les autres (token Bearer obligatoire, sinon HTTP 401).
+
+    **Format des réponses** :
+    - Succès : `{ "success": true, "data": ..., "message": "..." }`
+    - Erreur : `{ "success": false, "message": "...", "errors": {} }`
+  version: 1.0.0
+  contact:
+    name: HERIFITIAVANA Rotsy Nomena
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Développement
+  - url: https://api.mabibliotheque.com/v1
+    description: Production
+
+tags:
+  - name: Authentification
+    description: Obtention du token Bearer
+  - name: Authors
+    description: Gestion des auteurs
+  - name: Books
+    description: Gestion des livres
+  - name: Borrows
+    description: Gestion des emprunts
+
+paths:
+  /auth/login:
+    post:
+      tags: [Authentification]
+      summary: Authentifier un utilisateur et obtenir un token
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginInput'
+            example:
+              email: admin@bibliotheque.test
+              password: password123
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Identifiants invalides
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Identifiants invalides
+                errors: {}
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /authors:
+    get:
+      tags: [Authors]
+      summary: Afficher tous les auteurs
+      operationId: listAuthors
+      security: []
+      responses:
+        '200':
+          description: Liste des auteurs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorListResponse'
+    post:
+      tags: [Authors]
+      summary: Créer un auteur
+      operationId: createAuthor
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthorInput'
+            example:
+              first_name: Antoine
+              last_name: de Saint-Exupéry
+              nationality: Française
+      responses:
+        '201':
+          description: Auteur créé
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /authors/{id}:
+    get:
+      tags: [Authors]
+      summary: Afficher un auteur et ses livres
+      operationId: getAuthor
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Auteur avec la liste de ses livres
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorWithBooksResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Authors]
+      summary: Modifier un auteur
+      operationId: updateAuthor
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAuthorInput'
+            example:
+              nationality: Française
+      responses:
+        '200':
+          description: Auteur modifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthorResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Authors]
+      summary: Supprimer un auteur
+      description: La suppression d'un auteur supprime aussi ses livres et leurs emprunts (suppression en cascade).
+      operationId: deleteAuthor
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Auteur supprimé (aucun contenu retourné)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /books:
+    get:
+      tags: [Books]
+      summary: Afficher tous les livres (filtre optionnel par disponibilité)
+      operationId: listBooks
+      security: []
+      parameters:
+        - name: available
+          in: query
+          required: false
+          description: Filtrer par disponibilité (`true` ou `false`).
+          schema:
+            type: boolean
+          example: true
+      responses:
+        '200':
+          description: Liste des livres avec leur auteur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookListResponse'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    post:
+      tags: [Books]
+      summary: Ajouter un livre
+      operationId: createBook
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookInput'
+            example:
+              title: Le Petit Prince
+              isbn: '9782070612758'
+              year: 1943
+              author_id: 1
+      responses:
+        '201':
+          description: Livre ajouté
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /books/{id}:
+    get:
+      tags: [Books]
+      summary: Afficher un livre et son auteur
+      operationId: getBook
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Livre avec son auteur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Books]
+      summary: Modifier un livre
+      operationId: updateBook
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookInput'
+            example:
+              title: Les Misérables (édition illustrée)
+      responses:
+        '200':
+          description: Livre modifié
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+    delete:
+      tags: [Books]
+      summary: Supprimer un livre
+      operationId: deleteBook
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '204':
+          description: Livre supprimé (aucun contenu retourné)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /borrows:
+    get:
+      tags: [Borrows]
+      summary: Afficher les emprunts en cours
+      description: Retourne uniquement les emprunts dont `returned_at` est nul.
+      operationId: listBorrows
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Liste des emprunts en cours
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Borrows]
+      summary: Enregistrer un emprunt
+      description: Le livre doit être disponible. Après l'emprunt, `available` passe à `false`.
+      operationId: createBorrow
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BorrowInput'
+            example:
+              user_name: Rakoto Jean
+              book_id: 1
+      responses:
+        '201':
+          description: Emprunt enregistré
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '422':
+          description: Données invalides ou livre indisponible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Livre indisponible
+                errors:
+                  book_id:
+                    - Ce livre est déjà emprunté et ne peut pas être emprunté.
+
+  /borrows/{id}/return:
+    patch:
+      tags: [Borrows]
+      summary: Marquer un livre comme rendu
+      description: Renseigne `returned_at` et remet `available` du livre à `true`. Un emprunt ne peut être rendu qu'une seule fois.
+      operationId: returnBorrow
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdParam'
+      responses:
+        '200':
+          description: Livre retourné
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BorrowResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Emprunt déjà retourné
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Emprunt déjà retourné
+                errors:
+                  borrow:
+                    - Ce livre a déjà été rendu.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdParam:
+      name: id
+      in: path
+      required: true
+      description: Identifiant numérique de la ressource.
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+
+  responses:
+    Unauthorized:
+      description: Non authentifié (token absent ou invalide)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Non authentifié
+            errors: {}
+    NotFound:
+      description: Ressource introuvable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Ressource introuvable
+            errors: {}
+    ValidationError:
+      description: Validation échouée
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: Données invalides
+            errors:
+              isbn:
+                - The isbn has already been taken.
+
+  schemas:
+    Author:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        first_name:
+          type: string
+          example: Victor
+        last_name:
+          type: string
+          example: Hugo
+        nationality:
+          type: string
+          example: Française
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-11-18T18:57:21.000000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-11-18T18:57:21.000000Z'
+
+    Book:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        title:
+          type: string
+          example: Les Misérables
+        isbn:
+          type: string
+          example: '9782070409228'
+        year:
+          type: integer
+          example: 1862
+        available:
+          type: boolean
+          example: true
+        author_id:
+          type: integer
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-11-18T18:57:21.000000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-11-18T18:57:21.000000Z'
+        author:
+          $ref: '#/components/schemas/Author'
+
+    AuthorWithBooks:
+      allOf:
+        - $ref: '#/components/schemas/Author'
+        - type: object
+          properties:
+            books:
+              type: array
+              items:
+                $ref: '#/components/schemas/Book'
+
+    Borrow:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_name:
+          type: string
+          example: Rakoto Jean
+        book_id:
+          type: integer
+          example: 3
+        borrowed_at:
+          type: string
+          format: date-time
+          example: '2026-11-13T18:57:21.000000Z'
+        returned_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-11-18T18:57:21.000000Z'
+        updated_at:
+          type: string
+          format: date-time
+          example: '2026-11-18T18:57:21.000000Z'
+        book:
+          $ref: '#/components/schemas/Book'
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@bibliotheque.test
+        password:
+          type: string
+          format: password
+          example: password123
+
+    CreateAuthorInput:
+      type: object
+      required: [first_name, last_name, nationality]
+      properties:
+        first_name:
+          type: string
+          maxLength: 255
+          example: Antoine
+        last_name:
+          type: string
+          maxLength: 255
+          example: de Saint-Exupéry
+        nationality:
+          type: string
+          maxLength: 255
+          example: Française
+
+    UpdateAuthorInput:
+      type: object
+      properties:
+        first_name:
+          type: string
+          maxLength: 255
+        last_name:
+          type: string
+          maxLength: 255
+        nationality:
+          type: string
+          maxLength: 255
+
+    CreateBookInput:
+      type: object
+      required: [title, isbn, year, author_id]
+      properties:
+        title:
+          type: string
+          maxLength: 255
+          example: Le Petit Prince
+        isbn:
+          type: string
+          maxLength: 20
+          description: ISBN unique.
+          example: '9782070612758'
+        year:
+          type: integer
+          minimum: 0
+          example: 1943
+        available:
+          type: boolean
+          description: Facultatif, vaut `true` par défaut.
+          example: true
+        author_id:
+          type: integer
+          description: Identifiant d'un auteur existant.
+          example: 1
+
+    UpdateBookInput:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        isbn:
+          type: string
+          maxLength: 20
+        year:
+          type: integer
+          minimum: 0
+        available:
+          type: boolean
+        author_id:
+          type: integer
+
+    BorrowInput:
+      type: object
+      required: [user_name, book_id]
+      properties:
+        user_name:
+          type: string
+          maxLength: 255
+          example: Rakoto Jean
+        book_id:
+          type: integer
+          example: 1
+
+    AuthPayload:
+      type: object
+      properties:
+        token:
+          type: string
+          example: 1|Dvln48pOWpXJdlJCOnHBNYXR5DVO3CyV1yMZkGAR7f88276f
+        token_type:
+          type: string
+          example: Bearer
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Administrateur
+            email:
+              type: string
+              example: admin@bibliotheque.test
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Une erreur est survenue
+        errors:
+          type: object
+          additionalProperties: true
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AuthPayload'
+        message:
+          type: string
+          example: Connexion réussie
+
+    AuthorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Author'
+        message:
+          type: string
+          example: Opération réussie
+
+    AuthorWithBooksResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/AuthorWithBooks'
+        message:
+          type: string
+          example: Auteur récupéré avec succès
+
+    AuthorListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Author'
+        message:
+          type: string
+          example: Liste des auteurs
+
+    BookResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Book'
+        message:
+          type: string
+          example: Opération réussie
+
+    BookListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Book'
+        message:
+          type: string
+          example: Liste des livres
+
+    BorrowResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Borrow'
+        message:
+          type: string
+          example: Opération réussie
+
+    BorrowListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Borrow'
+        message:
+          type: string
+          example: Liste des emprunts en cours

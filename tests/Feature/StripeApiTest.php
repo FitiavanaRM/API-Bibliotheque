@@ -108,11 +108,18 @@ class StripeApiTest extends TestCase
     {
         $user = $this->user('free');
         $payload = $this->succeeded('evt_3', ['user_id' => (string) $user->id, 'plan' => 'premium']);
+
         $this->webhook($payload)->assertStatus(200);
-        $user->forceFill(['subscription_status' => 'free'])->save(); // on simule un retour en arrière
+        $this->assertSame('premium', $user->fresh()->subscription_status);
+
+        // On remet free directement en base
+        DB::table('users')->where('id', $user->id)->update(['subscription_status' => 'free']);
+
+        // Même événement rejoué : il doit être ignoré
         $this->webhook($payload)->assertStatus(200);
+
         $this->assertSame(1, DB::table('stripe_events')->where('event_id', 'evt_3')->count());
-        $this->assertSame('free', $user->fresh()->subscription_status); // le doublon n'a rien retraité
+        $this->assertSame('free', $user->fresh()->subscription_status);
     }
 
     public function test_webhook_ignore_autre_plan_et_autre_evenement(): void
