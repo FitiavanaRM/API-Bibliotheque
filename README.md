@@ -1,58 +1,82 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Bibliothèque API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST réalisée avec Laravel pour gérer un catalogue de livres, les auteurs et les emprunts. L’API inclut une authentification par jeton Sanctum, des fonctions d’IA pour la recherche et les résumés, ainsi qu’un paiement Premium traité par Stripe.
 
-## About Laravel
+## Prérequis
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 ou supérieur
+- Composer
+- SQLite (configuration utilisée par défaut)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Installation locale
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Depuis la racine du projet :
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```powershell
+composer install
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+L’API est alors disponible à `http://127.0.0.1:8000/api/v1` et Swagger UI à `http://127.0.0.1:8000/api/docs`.
 
-## Contributing
+Le seeder crée un compte de démonstration : `admin@bibliotheque.test` / `password123`. Ce mot de passe est réservé au développement local; changez-le avant tout déploiement.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Authentification
 
-## Code of Conduct
+Les consultations des livres et des auteurs sont publiques. Les créations, modifications et suppressions, les emprunts, la recherche IA, la génération de résumés et les routes d’abonnement nécessitent un jeton Bearer.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+1. Envoyer `POST /auth/login` avec `email` et `password`.
+2. Copier `data.token` dans l’en-tête `Authorization: Bearer <jeton>`.
 
-## Security Vulnerabilities
+Le webhook Stripe est public au niveau HTTP, mais refuse les requêtes dont la signature Stripe est absente ou invalide.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Fonctionnalités principales
 
-## License
+- CRUD des livres et des auteurs; les livres sont associés à un auteur.
+- Emprunt et retour des livres disponibles. Un compte gratuit peut avoir deux emprunts actifs; les comptes Premium ne sont pas soumis à cette limite.
+- Recherche intelligente et génération de résumés via une API compatible avec le format OpenAI Chat Completions. La configuration d’exemple utilise Gemini (`OPENAI_BASE_URL` et `OPENAI_MODEL` dans `.env`). Configurez une clé et une URL correspondant au fournisseur choisi.
+- Paiement Stripe de test par PaymentIntent de 5 EUR; un webhook signé peut activer le statut Premium. L’implémentation actuelle effectue un paiement ponctuel et ne gère pas le renouvellement d’un abonnement.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Configuration des services externes
+
+Les paramètres sont définis dans `.env` et lus depuis `config/services.php` :
+
+```dotenv
+OPENAI_API_KEY=
+OPENAI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+OPENAI_MODEL=gemini-2.5-flash
+
+STRIPE_PUBLISHABLE_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
+
+Renseignez des clés de test Stripe pour le développement. Ne publiez jamais `.env` ni de clé secrète dans le dépôt. Les tests automatisés simulent les réponses IA et Stripe; ils ne nécessitent pas de clés réelles.
+
+## Swagger et Postman
+
+- Swagger UI : `/api/docs`.
+- La spécification servie par l’application est `public/openapi.yaml`; gardez-la synchronisée avec `openapi.yaml` à la racine.
+- Collection et environnements : dossier `postman/`.
+- Pour régénérer les fichiers Postman après une modification du générateur :
+
+```powershell
+php tools/generate_postman.php
+```
+
+La simulation Postman d’un webhook signé demande un `stripe_webhook_secret` de test dans l’environnement sélectionné. Connectez-vous d’abord pour remplir automatiquement le jeton et l’identifiant utilisateur.
+
+## Tests
+
+Exécuter tous les tests :
+
+```powershell
+php artisan test
+```
+
+Les appels aux services externes sont simulés dans les tests. Pour tester un paiement réel en mode test ou un webhook Stripe émis par Stripe, configurez les clés de test et Stripe CLI séparément.
+
+> `php artisan migrate:fresh --seed` supprime toutes les tables avant de les recréer. Utilisez cette commande uniquement sur une base de développement ou de test.
