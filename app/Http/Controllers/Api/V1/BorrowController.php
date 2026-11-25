@@ -29,10 +29,14 @@ class BorrowController extends Controller
     }
 
     public function store(StoreBorrowRequest $request): JsonResponse
-    {
+     {
         $validated = $request->validated();
-        $result = DB::transaction(function () use ($validated) {
+        $user = $request->user();
+        $paymentStatus = $user->isPremium() ? 'paid' : 'free';
+
+        $result = DB::transaction(function () use ($validated, $user, $paymentStatus) {
             $book = Book::lockForUpdate()->find($validated['book_id']);
+
             if (! $book->available) {
                 return null;
             }
@@ -40,8 +44,10 @@ class BorrowController extends Controller
             $borrow = Borrow::create([
                 'user_name' => $validated['user_name'],
                 'book_id' => $book->id,
+                'user_id' => $user->id,
                 'borrowed_at' => now(),
                 'returned_at' => null,
+                'payment_status' => $paymentStatus,
             ]);
 
             $book->update(['available' => false]);
@@ -68,13 +74,13 @@ class BorrowController extends Controller
 
         $alreadyReturned = DB::transaction(function () use ($borrow) {
             $borrow = Borrow::lockForUpdate()->find($borrow->id);
-
             if ($borrow->returned_at !== null) {
                 return true;
             }
 
             $borrow->update(['returned_at' => now()]);
             $borrow->book()->update(['available' => true]);
+
             return false;
         });
 
