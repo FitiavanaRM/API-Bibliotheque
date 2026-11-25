@@ -51,6 +51,37 @@ class BibliothequeApiTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_crud_auteur_et_protection_des_modifications(): void
+    {
+        $this->postJson('/api/v1/authors', [
+            'first_name' => 'Victor',
+            'last_name' => 'Hugo',
+            'nationality' => 'Française',
+        ])->assertUnauthorized();
+
+        $this->auth();
+
+        $authorId = $this->postJson('/api/v1/authors', [
+            'first_name' => 'Victor',
+            'last_name' => 'Hugo',
+            'nationality' => 'Française',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.last_name', 'Hugo')
+            ->json('data.id');
+
+        $this->getJson("/api/v1/authors/{$authorId}")
+            ->assertOk()
+            ->assertJsonPath('data.first_name', 'Victor');
+
+        $this->putJson("/api/v1/authors/{$authorId}", ['nationality' => 'Française'])
+            ->assertOk()
+            ->assertJsonPath('data.nationality', 'Française');
+
+        $this->deleteJson("/api/v1/authors/{$authorId}")->assertNoContent();
+        $this->getJson("/api/v1/authors/{$authorId}")->assertNotFound();
+    }
+
     public function test_emprunt_et_retour(): void
     {
         $this->auth();
