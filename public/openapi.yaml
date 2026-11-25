@@ -295,7 +295,7 @@ paths:
     get:
       tags: [Borrows]
       summary: Afficher les emprunts en cours
-      description: Retourne uniquement les emprunts dont `returned_at` est nul.
+      description: Retourne les emprunts actifs (`returned_at` nul) appartenant au compte authentifié.
       operationId: listBorrows
       security:
         - BearerAuth: []
@@ -352,7 +352,7 @@ paths:
     patch:
       tags: [Borrows]
       summary: Marquer un livre comme rendu
-      description: Renseigne `returned_at` et remet `available` du livre à `true`. Un emprunt ne peut être rendu qu'une seule fois.
+      description: Renseigne `returned_at` et remet `available` du livre à `true`. Seul le propriétaire peut rendre son emprunt; un emprunt appartenant à un autre compte est traité comme introuvable. Un emprunt ne peut être rendu qu'une seule fois.
       operationId: returnBorrow
       security:
         - BearerAuth: []
