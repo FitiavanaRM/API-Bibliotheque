@@ -89,6 +89,10 @@ function req(string $name, string $method, array $path, array $o = []): array
         ];
     }
 
+    if (isset($o['description'])) {
+        $request['description'] = $o['description'];
+    }
+
     $events = [];
     if (!empty($o['pre'])) {
         $events[] = ['listen' => 'prerequest', 'script' => ['type' => 'text/javascript', 'exec' => $o['pre']]];
@@ -116,6 +120,7 @@ $auth = [
             t('Un token est retourné', "pm.expect(j.data.token).to.be.a('string').and.not.empty;"),
             t('Le type de token est Bearer', "pm.expect(j.data.token_type).to.eql('Bearer');"),
             "if (pm.response.code === 200) { pm.environment.set('token', pm.response.json().data.token); }",
+            "if (pm.response.code === 200) { pm.environment.set('user_id', pm.response.json().data.user.id); }",
         ],
     ]),
     req('POST /auth/login - Identifiants invalides (401)', 'POST', ['auth', 'login'], [
@@ -288,6 +293,79 @@ $borrows = [
     ]),
 ];
 
+// ---------- Dossier 5 : IA et résumés ----------
+$ai = [
+    req('POST /books/smart-search - Recherche intelligente (requiert une clé IA)', 'POST', ['books', 'smart-search'], [
+        'body' => "{\n  \"query\": \"Je cherche un livre sur les bonnes pratiques de programmation\"\n}",
+        'tests' => [
+            status(200),
+            successIs(true),
+            t('La requête originale est retournée', "pm.expect(j.query).to.be.a('string');"),
+            t('Les mots-clés sont retournés', "pm.expect(j.keywords).to.be.an('array');"),
+            t('Les livres trouvés sont retournés', "pm.expect(j.data).to.be.an('array');"),
+        ],
+    ]),
+    req('POST /books/{id}/summary - Générer un résumé (requiert une clé IA si absent)', 'POST', ['books', '{{book_id}}', 'summary'], [
+        'tests' => [
+            status(200),
+            successIs(true),
+            t('Le résumé du livre est retourné', "pm.expect(j.data.summary).to.be.a('string').and.not.empty;"),
+        ],
+    ]),
+    req('GET /books/{id}/summary - Consulter le résumé généré', 'GET', ['books', '{{book_id}}', 'summary'], [
+        'protected' => false,
+        'tests' => [
+            status(200),
+            successIs(true),
+            t('Le résumé du livre est retourné', "pm.expect(j.data.summary).to.be.a('string').and.not.empty;"),
+        ],
+    ]),
+];
+
+// ---------- Dossier 6 : Abonnement et webhook Stripe ----------
+$subscriptions = [
+    req('GET /subscriptions/status - Statut Premium', 'GET', ['subscriptions', 'status'], [
+        'tests' => [
+            status(200),
+            successIs(true),
+            t('Le statut Premium est retourné', "pm.expect(['free', 'premium']).to.include(j.data.subscription_status);"),
+        ],
+    ]),
+    req('POST /subscriptions/payment-intent - Créer un paiement de test Stripe', 'POST', ['subscriptions', 'payment-intent'], [
+        'tests' => [
+            status(200),
+            successIs(true),
+            t('Le paiement est de 5 EUR', "pm.expect(j.data.amount).to.eql(500); pm.expect(j.data.currency).to.eql('eur');"),
+            t('Le client secret est retourné', "pm.expect(j.data.client_secret).to.be.a('string').and.not.empty;"),
+        ],
+    ]),
+    req('POST /webhooks/stripe - Signature absente (401)', 'POST', ['webhooks', 'stripe'], [
+        'protected' => false,
+        'body' => "{\n  \"id\": \"evt_postman\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {}\n  }\n}",
+        'tests' => [status(401), successIs(false), keysErr()],
+    ]),
+    req('Simulate Stripe Webhook - Activer Premium', 'POST', ['webhooks', 'stripe'], [
+        'protected' => false,
+        'description' => 'La requête calcule une signature Stripe de test. Renseignez stripe_webhook_secret et exécutez d’abord la connexion pour remplir user_id.',
+        'pre' => [
+            "const secret = pm.environment.get('stripe_webhook_secret');",
+            "if (!secret) { throw new Error('Renseignez stripe_webhook_secret dans votre environnement Postman.'); }",
+            'const timestamp = Math.floor(Date.now() / 1000);',
+            'const payload = pm.variables.replaceIn(pm.request.body.raw);',
+            "const encoder = new TextEncoder();",
+            "const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);",
+            "const signatureBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(timestamp + '.' + payload));",
+            "const signature = Array.from(new Uint8Array(signatureBytes), (byte) => byte.toString(16).padStart(2, '0')).join('');",
+            "pm.request.headers.upsert({ key: 'Stripe-Signature', value: 't=' + timestamp + ',v1=' + signature });",
+        ],
+        'body' => "{\n  \"id\": \"evt_{{\$guid}}\",\n  \"object\": \"event\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_postman\",\n      \"object\": \"payment_intent\",\n      \"metadata\": {\n        \"user_id\": \"{{user_id}}\",\n        \"plan\": \"premium\"\n      }\n    }\n  }\n}",
+        'tests' => [
+            status(200),
+            t('Le webhook est accepté', "pm.expect(j.received).to.eql(true);"),
+        ],
+    ]),
+];
+
 // ---------- Collection ----------
 $collection = [
     'info' => [
@@ -305,13 +383,23 @@ $collection = [
         ['name' => '2. Authors', 'item' => $authors],
         ['name' => '3. Books', 'item' => $books],
         ['name' => '4. Borrows', 'item' => $borrows],
+        ['name' => '5. IA et résumés', 'item' => $ai],
+        ['name' => '6. Abonnement et webhook Stripe', 'item' => $subscriptions],
     ],
 ];
 
 // ---------- Environnements ----------
 function environment(string $name, string $baseUrl): array
 {
-    $vars = ['base_url' => $baseUrl, 'token' => '', 'book_id' => '1', 'author_id' => '1', 'borrow_id' => '1'];
+    $vars = [
+        'base_url' => $baseUrl,
+        'token' => '',
+        'user_id' => '',
+        'stripe_webhook_secret' => '',
+        'book_id' => '1',
+        'author_id' => '1',
+        'borrow_id' => '1',
+    ];
     $values = [];
     foreach ($vars as $k => $v) {
         $values[] = ['key' => $k, 'value' => $v, 'type' => 'default', 'enabled' => true];

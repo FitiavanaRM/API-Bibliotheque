@@ -32,7 +32,8 @@
                                     "pm.test('Structure JSON : success, data, message', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'data', 'message'); });",
                                     "pm.test('Un token est retourné', function () { const j = pm.response.json(); pm.expect(j.data.token).to.be.a('string').and.not.empty; });",
                                     "pm.test('Le type de token est Bearer', function () { const j = pm.response.json(); pm.expect(j.data.token_type).to.eql('Bearer'); });",
-                                    "if (pm.response.code === 200) { pm.environment.set('token', pm.response.json().data.token); }"
+                                    "if (pm.response.code === 200) { pm.environment.set('token', pm.response.json().data.token); }",
+                                    "if (pm.response.code === 200) { pm.environment.set('user_id', pm.response.json().data.user.id); }"
                                 ]
                             }
                         }
@@ -1161,6 +1162,347 @@
                                 "return"
                             ]
                         }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5. IA et résumés",
+            "item": [
+                {
+                    "name": "POST /books/smart-search - Recherche intelligente (requiert une clé IA)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('La requête originale est retournée', function () { const j = pm.response.json(); pm.expect(j.query).to.be.a('string'); });",
+                                    "pm.test('Les mots-clés sont retournés', function () { const j = pm.response.json(); pm.expect(j.keywords).to.be.an('array'); });",
+                                    "pm.test('Les livres trouvés sont retournés', function () { const j = pm.response.json(); pm.expect(j.data).to.be.an('array'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/smart-search",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "smart-search"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"query\": \"Je cherche un livre sur les bonnes pratiques de programmation\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "POST /books/{id}/summary - Générer un résumé (requiert une clé IA si absent)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Le résumé du livre est retourné', function () { const j = pm.response.json(); pm.expect(j.data.summary).to.be.a('string').and.not.empty; });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/{{book_id}}/summary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "{{book_id}}",
+                                "summary"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "GET /books/{id}/summary - Consulter le résumé généré",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Le résumé du livre est retourné', function () { const j = pm.response.json(); pm.expect(j.data.summary).to.be.a('string').and.not.empty; });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/books/{{book_id}}/summary",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "books",
+                                "{{book_id}}",
+                                "summary"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6. Abonnement et webhook Stripe",
+            "item": [
+                {
+                    "name": "GET /subscriptions/status - Statut Premium",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Le statut Premium est retourné', function () { const j = pm.response.json(); pm.expect(['free', 'premium']).to.include(j.data.subscription_status); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/subscriptions/status",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "subscriptions",
+                                "status"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "POST /subscriptions/payment-intent - Créer un paiement de test Stripe",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('success vaut true', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(true); });",
+                                    "pm.test('Le paiement est de 5 EUR', function () { const j = pm.response.json(); pm.expect(j.data.amount).to.eql(500); pm.expect(j.data.currency).to.eql('eur'); });",
+                                    "pm.test('Le client secret est retourné', function () { const j = pm.response.json(); pm.expect(j.data.client_secret).to.be.a('string').and.not.empty; });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/subscriptions/payment-intent",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "subscriptions",
+                                "payment-intent"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "POST /webhooks/stripe - Signature absente (401)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 401', function () { pm.response.to.have.status(401); });",
+                                    "pm.test('success vaut false', function () { const j = pm.response.json(); pm.expect(j.success).to.eql(false); });",
+                                    "pm.test('Structure JSON : success, message, errors', function () { const j = pm.response.json(); pm.expect(j).to.have.all.keys('success', 'message', 'errors'); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/webhooks/stripe",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "webhooks",
+                                "stripe"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"evt_postman\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {}\n  }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "name": "Simulate Stripe Webhook - Activer Premium",
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "const secret = pm.environment.get('stripe_webhook_secret');",
+                                    "if (!secret) { throw new Error('Renseignez stripe_webhook_secret dans votre environnement Postman.'); }",
+                                    "const timestamp = Math.floor(Date.now() / 1000);",
+                                    "const payload = pm.variables.replaceIn(pm.request.body.raw);",
+                                    "const encoder = new TextEncoder();",
+                                    "const key = await crypto.subtle.importKey('raw', encoder.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);",
+                                    "const signatureBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(timestamp + '.' + payload));",
+                                    "const signature = Array.from(new Uint8Array(signatureBytes), (byte) => byte.toString(16).padStart(2, '0')).join('');",
+                                    "pm.request.headers.upsert({ key: 'Stripe-Signature', value: 't=' + timestamp + ',v1=' + signature });"
+                                ]
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "type": "text/javascript",
+                                "exec": [
+                                    "pm.test('Statut HTTP 200', function () { pm.response.to.have.status(200); });",
+                                    "pm.test('Le webhook est accepté', function () { const j = pm.response.json(); pm.expect(j.received).to.eql(true); });"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/webhooks/stripe",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "webhooks",
+                                "stripe"
+                            ]
+                        },
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"id\": \"evt_{{$guid}}\",\n  \"object\": \"event\",\n  \"type\": \"payment_intent.succeeded\",\n  \"data\": {\n    \"object\": {\n      \"id\": \"pi_postman\",\n      \"object\": \"payment_intent\",\n      \"metadata\": {\n        \"user_id\": \"{{user_id}}\",\n        \"plan\": \"premium\"\n      }\n    }\n  }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "description": "La requête calcule une signature Stripe de test. Renseignez stripe_webhook_secret et exécutez d’abord la connexion pour remplir user_id."
                     }
                 }
             ]
