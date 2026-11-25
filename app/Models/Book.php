@@ -30,7 +30,7 @@ class Book extends Model
     }
 
     /**
-     * Un livre appartient à un auteur.
+     * Un livre appartient à un auteur
      */
     public function author(): BelongsTo
     {
@@ -38,7 +38,7 @@ class Book extends Model
     }
 
     /**
-     * Un livre peut avoir plusieurs emprunts au cours du temps.
+     * Un livre peut avoir plusieurs emprunts au cours du temps
      */
     public function borrows(): HasMany
     {

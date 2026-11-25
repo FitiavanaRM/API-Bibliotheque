@@ -35,7 +35,7 @@ return [
         ],
     ],
 
-        'openai' => [
+    'openai' => [
         'key' => env('OPENAI_API_KEY'),
         'base_url' => env('OPENAI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/openai/'),
         'model' => env('OPENAI_MODEL', 'gemini-2.5-flash'),
