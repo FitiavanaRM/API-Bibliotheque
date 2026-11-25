@@ -41,4 +41,14 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function borrows(): HasMany
+    {
+        return $this->hasMany(Borrow::class);
+    }
+
+    public function isPremium(): bool
+    {
+        return ($this->subscription_status ?? 'free') === 'premium';
+    }
 }

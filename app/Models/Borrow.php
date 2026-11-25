@@ -11,8 +11,10 @@ class Borrow extends Model
     protected $fillable = [
         'user_name',
         'book_id',
+        'user_id',
         'borrowed_at',
         'returned_at',
+        'payment_status',
     ];
 
     protected function casts(): array
@@ -29,5 +31,10 @@ class Borrow extends Model
     public function book(): BelongsTo
     {
         return $this->belongsTo(Book::class);
+    }
+    
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }
