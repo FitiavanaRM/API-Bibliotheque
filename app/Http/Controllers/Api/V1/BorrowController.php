@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Http\Requests\StoreBorrowRequest;
 use App\Models\Book;
 use App\Models\Borrow;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class BorrowController extends Controller
@@ -19,9 +19,10 @@ class BorrowController extends Controller
     /**
      * Emprunts en cours (returned_at est null).
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $borrows = Borrow::with('book.author')
+        $borrows = $request->user()->borrows()
+            ->with('book.author')
             ->whereNull('returned_at')
             ->get();
 
@@ -29,7 +30,7 @@ class BorrowController extends Controller
     }
 
     public function store(StoreBorrowRequest $request): JsonResponse
-     {
+    {
         $validated = $request->validated();
         $user = $request->user();
         $paymentStatus = $user->isPremium() ? 'paid' : 'free';
@@ -51,6 +52,7 @@ class BorrowController extends Controller
             ]);
 
             $book->update(['available' => false]);
+
             return $borrow;
         });
 
@@ -65,15 +67,18 @@ class BorrowController extends Controller
         return $this->success($result->load('book.author'), 'Emprunt enregistré avec succès', 201);
     }
 
-    public function returnBook(int $id): JsonResponse
+    public function returnBook(Request $request, int $id): JsonResponse
     {
-        $borrow = Borrow::find($id);
+        $user = $request->user();
+        $borrow = $user->borrows()->find($id);
+
         if (! $borrow) {
             return $this->error('Emprunt introuvable', null, 404);
         }
 
-        $alreadyReturned = DB::transaction(function () use ($borrow) {
-            $borrow = Borrow::lockForUpdate()->find($borrow->id);
+        $alreadyReturned = DB::transaction(function () use ($user, $borrow) {
+            $borrow = $user->borrows()->lockForUpdate()->find($borrow->id);
+
             if ($borrow->returned_at !== null) {
                 return true;
             }

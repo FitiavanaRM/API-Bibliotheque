@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Author;
 use App\Models\Book;
-use App\Models\Borrow;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -70,6 +69,52 @@ class BibliothequeApiTest extends TestCase
 
         $this->patchJson("/api/v1/borrows/{$borrowId}/return")->assertStatus(422);
         $this->patchJson('/api/v1/borrows/999/return')->assertStatus(404);
+    }
+
+    public function test_un_utilisateur_ne_peut_pas_voir_ou_rendre_l_emprunt_d_un_autre(): void
+    {
+        $currentUser = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $author = Author::create(['first_name' => 'A', 'last_name' => 'B', 'nationality' => 'C']);
+        $ownBook = Book::create([
+            'title' => 'Livre du compte connecté',
+            'isbn' => '111',
+            'year' => 2020,
+            'available' => false,
+            'author_id' => $author->id,
+        ]);
+        $otherBook = Book::create([
+            'title' => 'Livre d’un autre compte',
+            'isbn' => '222',
+            'year' => 2020,
+            'available' => false,
+            'author_id' => $author->id,
+        ]);
+        $ownBorrow = $currentUser->borrows()->create([
+            'user_name' => $currentUser->name,
+            'book_id' => $ownBook->id,
+            'borrowed_at' => now(),
+            'payment_status' => 'free',
+        ]);
+        $otherBorrow = $otherUser->borrows()->create([
+            'user_name' => $otherUser->name,
+            'book_id' => $otherBook->id,
+            'borrowed_at' => now(),
+            'payment_status' => 'free',
+        ]);
+
+        Sanctum::actingAs($currentUser);
+
+        $this->getJson('/api/v1/borrows')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.id', $ownBorrow->id);
+
+        $this->patchJson("/api/v1/borrows/{$otherBorrow->id}/return")
+            ->assertNotFound();
+
+        $this->assertNull($otherBorrow->fresh()->returned_at);
+        $this->assertFalse($otherBook->fresh()->available);
     }
 
     public function test_suppression_livre(): void
