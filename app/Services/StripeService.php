@@ -21,7 +21,8 @@ class StripeService
     }
 
     /**
-     * Crée un PaymentIntent de 5 EUR pour l'abonnement Premium
+     * Crée un PaymentIntent de 5 EUR pour l'abonnement Premium.
+     *
      * @return array{id: string, client_secret: string}
      */
     public function createPremiumPaymentIntent(User $user): array
@@ -36,11 +37,16 @@ class StripeService
             throw new StripeUnavailableException('Seules les clés Stripe de test sont autorisées.');
         }
 
+        // Utilise le même certificat SSL que le reste de l'application
+        $ca = ini_get('curl.cainfo');
+        if ($ca && is_file($ca)) {
+            \Stripe\Stripe::setCABundlePath($ca);
+        }
+
         try {
             $intent = (new StripeClient($secret))->paymentIntents->create([
                 'amount' => self::PREMIUM_AMOUNT,
                 'currency' => self::CURRENCY,
-                'payment_method_types' => ['card'],
                 'metadata' => [
                     'user_id' => (string) $user->id,
                     'plan' => 'premium',
